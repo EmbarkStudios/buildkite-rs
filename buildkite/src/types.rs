@@ -36,6 +36,12 @@ pub enum BuildState {
     Finished,
 }
 
+impl std::fmt::Display for BuildState {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum JobState {
     // Passed and Failed are not listed in the docs:
@@ -277,7 +283,7 @@ pub struct Agent {
     pub user_agent: String,
     pub version: String,
     pub creator: Option<Creator>,
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
     pub job: Option<Job>,
     pub last_job_finished_at: Option<DateTime<Utc>>,
     pub priority: u64,

@@ -1,21 +1,25 @@
 use crate::http;
 use crate::http::HttpClient;
+use crate::iterator::{BuildkiteIterator, Paginator};
 use crate::types::{Agent, Result};
-use serde::{Deserialize, Serialize};
 
-const AGENTS_PER_PAGE: u32 = 25;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::rc::Rc;
 
-pub struct AgentService<'a> {
-    pub client: &'a HttpClient,
+pub struct AgentService {
+    pub client: Rc<HttpClient>,
 }
 
-impl<'a> AgentService<'a> {
-    pub fn new(client: &'a HttpClient) -> AgentService<'a> {
+impl AgentService {
+    pub fn new(client: Rc<HttpClient>) -> AgentService {
         AgentService { client }
     }
 
-    pub fn iter_for(&self, org: &str) -> AgentServiceIterator<'a> {
-        AgentServiceIterator::new(self.client, org)
+    pub fn iter_for<T: for<'de> Deserialize<'de>>(&self, org: &str) -> BuildkiteIterator<T> {
+        BuildkiteIterator::new(Box::new(AgentServiceIterator::new(
+            Rc::clone(&self.client),
+            org,
+        )))
     }
 
     pub fn list(&self, org: &str) -> Result<Vec<Agent>> {
@@ -33,7 +37,7 @@ impl<'a> AgentService<'a> {
     pub fn stop(&self, org: &str, agent_id: &str, force: bool) -> Result<()> {
         let base_url = http::org_url(org);
         let url = format!("{}/agents/{}", base_url, agent_id);
-        let request = StopAgentRequest { force: force };
+        let request = StopAgentRequest { force };
         self.client.put(url.as_str(), &request)
     }
 }
@@ -43,59 +47,31 @@ struct StopAgentRequest {
     force: bool,
 }
 
-pub struct AgentServiceIterator<'a> {
-    pub client: &'a HttpClient,
+pub struct AgentServiceIterator {
+    pub client: Rc<HttpClient>,
     org: String,
-    agents: Vec<Agent>,
-    current_page: u32,
-    current_index: u32,
 }
 
-impl<'a> AgentServiceIterator<'a> {
-    pub fn new(client: &'a HttpClient, org: &str) -> AgentServiceIterator<'a> {
-        AgentServiceIterator {
-            client,
-            org: org.to_string(),
-            agents: vec![],
-            current_page: 1,
-            current_index: 0u32,
-        }
-    }
-
-    fn next_page(&mut self) -> Result<Vec<Agent>> {
+impl<T> Paginator<T> for AgentServiceIterator
+where
+    T: DeserializeOwned,
+{
+    fn get_page(&self, page: u32) -> Result<Vec<T>> {
         let base_url = http::org_url(&self.org);
         let url = format!("{}/agents", base_url);
         let result = self
             .client
-            .get_response_with_query(url.as_str(), &[("page", &self.current_page.to_string())]);
-
-        self.current_page += 1;
+            .get_response_with_query(url.as_str(), &[("page", &page.to_string())]);
 
         result
     }
 }
 
-impl<'a> Iterator for AgentServiceIterator<'a> {
-    type Item = Agent;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let idx = (self.current_index % AGENTS_PER_PAGE) as usize;
-        self.current_index += 1;
-
-        if idx == 0 {
-            match self.next_page() {
-                Ok(l) => self.agents = l,
-                Err(e) => {
-                    println!("Err: {:?}", e);
-                    return None;
-                }
-            }
-        }
-
-        if self.agents.len() > idx {
-            Some(self.agents[idx].clone())
-        } else {
-            None
+impl AgentServiceIterator {
+    pub fn new(client: Rc<HttpClient>, org: &str) -> AgentServiceIterator {
+        AgentServiceIterator {
+            client,
+            org: org.to_string(),
         }
     }
 }

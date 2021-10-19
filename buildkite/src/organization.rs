@@ -1,21 +1,25 @@
 use crate::http;
 use crate::http::HttpClient;
+use crate::iterator::{BuildkiteIterator, Paginator};
 use crate::types::{Organization, Result};
 
-const ORGANIZATIONS_PER_PAGE: u32 = 25;
+use serde::{de::DeserializeOwned, Deserialize};
+use std::rc::Rc;
 
-pub struct OrganizationService<'a> {
+pub struct OrganizationService {
     /// The buildkite client
-    pub client: &'a HttpClient,
+    pub client: Rc<HttpClient>,
 }
 
-impl<'a> OrganizationService<'a> {
-    pub fn new(client: &'a HttpClient) -> OrganizationService {
+impl OrganizationService {
+    pub fn new(client: Rc<HttpClient>) -> OrganizationService {
         OrganizationService { client }
     }
 
-    pub fn iter(&self) -> OrganizationServiceIterator<'a> {
-        OrganizationServiceIterator::new(self.client)
+    pub fn iter<T: for<'de> Deserialize<'de>>(&self) -> BuildkiteIterator<T> {
+        BuildkiteIterator::new(Box::new(OrganizationServiceIterator::new(Rc::clone(
+            &self.client,
+        ))))
     }
 
     pub fn list(&self) -> Result<Vec<Organization>> {
@@ -31,57 +35,27 @@ impl<'a> OrganizationService<'a> {
     }
 }
 
-pub struct OrganizationServiceIterator<'a> {
-    pub client: &'a HttpClient,
-    organizations: Vec<Organization>,
-    current_page: u32,
-    current_index: u32,
+pub struct OrganizationServiceIterator {
+    pub client: Rc<HttpClient>,
 }
 
-impl<'a> OrganizationServiceIterator<'a> {
-    pub fn new(client: &'a HttpClient) -> OrganizationServiceIterator<'a> {
-        OrganizationServiceIterator {
-            client,
-            organizations: vec![],
-            current_page: 1,
-            current_index: 0u32,
-        }
-    }
-
-    fn next_page(&mut self) -> Result<Vec<Organization>> {
+impl<T> Paginator<T> for OrganizationServiceIterator
+where
+    T: DeserializeOwned,
+{
+    fn get_page(&self, page: u32) -> Result<Vec<T>> {
         let base_url = http::base_url();
         let url = format!("{}/organizations", base_url);
         let result = self
             .client
-            .get_response_with_query(url.as_str(), &[("page", &self.current_page.to_string())]);
-
-        self.current_page += 1;
+            .get_response_with_query(url.as_str(), &[("page", &page.to_string())]);
 
         result
     }
 }
 
-impl<'a> Iterator for OrganizationServiceIterator<'a> {
-    type Item = Organization;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let idx = (self.current_index % ORGANIZATIONS_PER_PAGE) as usize;
-        self.current_index += 1;
-
-        if idx == 0 {
-            match self.next_page() {
-                Ok(l) => self.organizations = l,
-                Err(e) => {
-                    println!("Err: {:?}", e);
-                    return None;
-                }
-            }
-        }
-
-        if self.organizations.len() > idx {
-            Some(self.organizations[idx].clone())
-        } else {
-            None
-        }
+impl OrganizationServiceIterator {
+    pub fn new(client: Rc<HttpClient>) -> OrganizationServiceIterator {
+        OrganizationServiceIterator { client }
     }
 }

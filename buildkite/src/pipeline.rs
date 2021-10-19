@@ -1,21 +1,26 @@
 use crate::http;
 use crate::http::HttpClient;
+use crate::iterator::{BuildkiteIterator, Paginator};
 use crate::types::{Pipeline, Result};
 
-const PIPELINES_PER_PAGE: u32 = 25;
+use serde::{de::DeserializeOwned, Deserialize};
+use std::rc::Rc;
 
-pub struct PipelineService<'a> {
+pub struct PipelineService {
     /// The buildkite client
-    pub client: &'a HttpClient,
+    pub client: Rc<HttpClient>,
 }
 
-impl<'a> PipelineService<'a> {
-    pub fn new(client: &'a HttpClient) -> PipelineService {
+impl PipelineService {
+    pub fn new(client: Rc<HttpClient>) -> PipelineService {
         PipelineService { client }
     }
 
-    pub fn iter_for(&self, org: &str) -> PipelineServiceIterator<'a> {
-        PipelineServiceIterator::new(self.client, org)
+    pub fn iter_for<T: for<'de> Deserialize<'de>>(&self, org: &str) -> BuildkiteIterator<T> {
+        BuildkiteIterator::new(Box::new(PipelineServiceIterator::new(
+            Rc::clone(&self.client),
+            org,
+        )))
     }
 
     /// List pipelines returns the pipeline list
@@ -33,59 +38,31 @@ impl<'a> PipelineService<'a> {
     }
 }
 
-pub struct PipelineServiceIterator<'a> {
-    pub client: &'a HttpClient,
+pub struct PipelineServiceIterator {
+    pub client: Rc<HttpClient>,
     org: String,
-    pipelines: Vec<Pipeline>,
-    current_page: u32,
-    current_index: u32,
 }
 
-impl<'a> PipelineServiceIterator<'a> {
-    pub fn new(client: &'a HttpClient, org: &str) -> PipelineServiceIterator<'a> {
-        PipelineServiceIterator {
-            client,
-            org: org.to_string(),
-            pipelines: vec![],
-            current_page: 1,
-            current_index: 0u32,
-        }
-    }
-
-    fn next_page(&mut self) -> Result<Vec<Pipeline>> {
+impl<T> Paginator<T> for PipelineServiceIterator
+where
+    T: DeserializeOwned,
+{
+    fn get_page(&self, page: u32) -> Result<Vec<T>> {
         let base_url = http::org_url(&self.org);
         let url = format!("{}/pipelines", base_url);
         let result = self
             .client
-            .get_response_with_query(url.as_str(), &[("page", &self.current_page.to_string())]);
-
-        self.current_page += 1;
+            .get_response_with_query(url.as_str(), &[("page", &page.to_string())]);
 
         result
     }
 }
 
-impl<'a> Iterator for PipelineServiceIterator<'a> {
-    type Item = Pipeline;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let idx = (self.current_index % PIPELINES_PER_PAGE) as usize;
-        self.current_index += 1;
-
-        if idx == 0 {
-            match self.next_page() {
-                Ok(l) => self.pipelines = l,
-                Err(e) => {
-                    println!("Err: {:?}", e);
-                    return None;
-                }
-            }
-        }
-
-        if self.pipelines.len() > idx {
-            Some(self.pipelines[idx].clone())
-        } else {
-            None
+impl PipelineServiceIterator {
+    pub fn new(client: Rc<HttpClient>, org: &str) -> PipelineServiceIterator {
+        PipelineServiceIterator {
+            client,
+            org: org.to_string(),
         }
     }
 }
