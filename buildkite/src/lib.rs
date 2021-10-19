@@ -1,8 +1,8 @@
 mod agent;
 mod build;
+mod http;
 mod organization;
 mod pipeline;
-mod types;
-mod http;
 
 pub mod client;
+pub mod types;

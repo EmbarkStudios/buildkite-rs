@@ -16,15 +16,24 @@ impl HttpClient {
     pub fn new(token: String) -> HttpClient {
         HttpClient {
             client: blocking::Client::new(),
-            token: token,
+            token,
         }
     }
 
     /// generic function to fetch the response and deserialize to struct of given type
     pub fn get_response<T: DeserializeOwned>(&self, url: &str) -> Result<T> {
+        self.get_response_with_query(url, &[])
+    }
+
+    pub fn get_response_with_query<T: DeserializeOwned>(
+        &self,
+        url: &str,
+        query: &[(&str, &str)],
+    ) -> Result<T> {
         self.client
             .get(url)
             .bearer_auth(self.token.as_str())
+            .query(query)
             .send()?
             .json::<T>()
     }

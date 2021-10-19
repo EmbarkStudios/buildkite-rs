@@ -1,6 +1,6 @@
-use crate::types::{Pipeline, Result};
-use crate::http::HttpClient;
 use crate::http;
+use crate::http::HttpClient;
+use crate::types::{Pipeline, Result};
 
 pub struct PipelineService<'a> {
     /// The buildkite client
@@ -9,9 +9,7 @@ pub struct PipelineService<'a> {
 
 impl<'a> PipelineService<'a> {
     pub fn new(client: &'a HttpClient) -> PipelineService {
-        PipelineService {
-            client: client,
-        }
+        PipelineService { client }
     }
 
     /// List pipelines returns the pipeline list

@@ -9,7 +9,7 @@ pub struct AgentService<'a> {
 
 impl<'a> AgentService<'a> {
     pub fn new(client: &'a HttpClient) -> AgentService<'a> {
-        AgentService { client: client }
+        AgentService { client }
     }
 
     pub fn list(&self, org: &str) -> Result<Vec<Agent>> {
@@ -27,7 +27,7 @@ impl<'a> AgentService<'a> {
     pub fn stop(&self, org: &str, agent_id: &str, force: bool) -> Result<()> {
         let base_url = http::org_url(org);
         let url = format!("{}/agents/{}", base_url, agent_id);
-        let request = StopAgentRequest{force: force};
+        let request = StopAgentRequest { force: force };
         self.client.put(url.as_str(), &request)
     }
 }
