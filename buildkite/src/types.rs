@@ -38,9 +38,9 @@ pub enum BuildState {
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum JobState {
-    // TOOD: Passed and Failed are not listed in the docs:
+    // Passed and Failed are not listed in the docs:
     // https://buildkite.com/docs/pipelines/defining-steps#job-states
-    // However, it occurs for a lot of job states.
+    // However, they are both valid job states.
     #[serde(alias = "passed")]
     Passed,
     #[serde(alias = "failed")]
@@ -251,7 +251,7 @@ pub struct Log {
     pub url: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Organization {
     pub id: String,
     pub graphql_id: String,
@@ -265,7 +265,7 @@ pub struct Organization {
     pub pipelines_url: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Agent {
     pub id: String,
     pub url: String,
