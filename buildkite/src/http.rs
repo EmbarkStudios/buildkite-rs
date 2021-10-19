@@ -52,7 +52,7 @@ impl HttpClient {
 pub const BUILDKITE_URL_BASE: &str = "https://api.buildkite.com/v2";
 
 pub fn base_url() -> String {
-    format!("{}", BUILDKITE_URL_BASE)
+    BUILDKITE_URL_BASE.to_string()
 }
 
 pub fn org_url(org: &str) -> String {

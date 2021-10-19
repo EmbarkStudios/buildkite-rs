@@ -29,8 +29,7 @@ impl OrganizationService {
     }
 
     pub fn get(&self, org: &str) -> Result<Organization> {
-        let base_url = http::org_url(org);
-        let url = format!("{}", base_url);
+        let url = http::org_url(org);
         self.client.get_response(url.as_str())
     }
 }
