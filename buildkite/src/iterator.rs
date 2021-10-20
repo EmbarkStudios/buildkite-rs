@@ -34,8 +34,7 @@ impl<T: Clone> Iterator for BuildkiteIterator<T> {
         if idx == 0 {
             match self.paginator.get_page(self.current_page) {
                 Ok(l) => self.list = l,
-                Err(e) => {
-                    println!("Err: {:?}", e);
+                Err(_) => {
                     return None;
                 }
             }
