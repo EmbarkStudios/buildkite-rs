@@ -94,6 +94,12 @@ pub enum JobState {
     Broken,
 }
 
+impl std::fmt::Display for JobState {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Author {
     pub username: Option<String>,
@@ -114,24 +120,41 @@ pub struct Creator {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderSettings {
     pub trigger_mode: String,
-    pub build_pull_requests: Option<bool>,
-    pub pull_request_branch_filter_enabled: Option<bool>,
-    pub skip_builds_for_existing_commits: Option<bool>,
-    pub skip_pull_request_builds_for_existing_commits: Option<bool>,
-    pub build_pull_request_ready_for_review: Option<bool>,
-    pub build_pull_request_labels_changed: Option<bool>,
-    pub build_pull_request_forks: Option<bool>,
-    pub prefix_pull_request_fork_branch_names: Option<bool>,
-    pub build_branches: Option<bool>,
-    pub build_tags: Option<bool>,
-    pub cancel_deleted_branch_builds: Option<bool>,
-    pub publish_commit_status: Option<bool>,
-    pub publish_commit_status_per_step: Option<bool>,
-    pub separate_pull_request_statuses: Option<bool>,
-    pub publish_blocked_as_pending: Option<bool>,
-    pub use_step_key_as_commit_status: Option<bool>,
-    pub filter_enabled: Option<bool>,
-    pub repository: Option<String>,
+    #[serde(default)]
+    pub build_pull_requests: bool,
+    #[serde(default)]
+    pub pull_request_branch_filter_enabled: bool,
+    #[serde(default)]
+    pub skip_builds_for_existing_commits: bool,
+    #[serde(default)]
+    pub skip_pull_request_builds_for_existing_commits: bool,
+    #[serde(default)]
+    pub build_pull_request_ready_for_review: bool,
+    #[serde(default)]
+    pub build_pull_request_labels_changed: bool,
+    #[serde(default)]
+    pub build_pull_request_forks: bool,
+    #[serde(default)]
+    pub prefix_pull_request_fork_branch_names: bool,
+    #[serde(default)]
+    pub build_branches: bool,
+    #[serde(default)]
+    pub build_tags: bool,
+    #[serde(default)]
+    pub cancel_deleted_branch_builds: bool,
+    #[serde(default)]
+    pub publish_commit_status: bool,
+    #[serde(default)]
+    pub publish_commit_status_per_step: bool,
+    #[serde(default)]
+    pub separate_pull_request_statuses: bool,
+    #[serde(default)]
+    pub publish_blocked_as_pending: bool,
+    #[serde(default)]
+    pub use_step_key_as_commit_status: bool,
+    #[serde(default)]
+    pub filter_enabled: bool,
+    pub repository: String,
     pub pull_request_branch_filter_configuration: Option<String>,
     pub filter_condition: Option<String>,
 }
